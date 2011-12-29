@@ -739,7 +739,7 @@ function BirdHouse(params) {
 		if (authorized === false) {
 			authorize(function(resp){
 				if (resp) {
-					obj.tweet(obj.mytweet);
+					obj.short_tweet(obj.mytweet, callback);
 
 					return true;
 				} else {

@@ -23,18 +23,6 @@
 // Modified: May 2011
 // --------------------------------------------------------
 
-// INCLUDES
-// iphone requires complete path
-if (Ti.Platform.osname=='iphone') {
-	Ti.include('lib/oauth.js');
-	Ti.include('lib/sha1.js');
-}
-// android will search the current directory for files
-else {
-	Ti.include('oauth.js');
-	Ti.include('sha1.js');
-}
-
 // THE CLASS
 function BirdHouse(params) {
 	// --------------------------------------------------------
@@ -62,6 +50,23 @@ function BirdHouse(params) {
 		tokenSecret   : cfg.access_token_secret
 	};
 	var authorized = false;
+
+	var osname = Ti.Platform.osname;
+	if ( osname === 'ipad' ) {
+		osname = 'iphone';
+	}
+    
+	// INCLUDES
+	// iphone requires complete path
+	if (osname=='iphone') {
+		Ti.include('lib/oauth.js');
+		Ti.include('lib/sha1.js');
+	}
+	// android will search the current directory for files
+	else {
+		Ti.include('oauth.js');
+		Ti.include('sha1.js');
+	}
 
 	// --------------------------------------------------------
 	// set_message
@@ -143,7 +148,7 @@ function BirdHouse(params) {
 			fullscreen: true
 		});
 		// add close button on iPhone
-		if (Ti.Platform.osname=='iphone' && cfg.show_login_toolbar) {
+		if (osname=='iphone' && cfg.show_login_toolbar) {
 			var webView = Ti.UI.createWebView({
 				url: url,
 				scalesPageToFit: true,
@@ -564,7 +569,7 @@ function BirdHouse(params) {
 
 			// the UI window looks completely different on iPhone vs. Android
 			// iPhone UI
-			if (Ti.Platform.osname=='iphone') {
+			if (osname=='iphone') {
 				var winTW = Titanium.UI.createWindow({
 					height:((Ti.Platform.displayCaps.platformHeight*0.5)-15), // half because the keyboard takes up half
 					width:(Ti.Platform.displayCaps.platformWidth-20),
@@ -676,7 +681,7 @@ function BirdHouse(params) {
 						return false;
 					} else {
 						// hide the keyboard on Android because it doesn't automatically
-						if (Ti.Platform.osname=='android') {
+						if (osname=='android') {
 							Titanium.UI.Android.hideSoftKeyboard();
 						}
 
@@ -694,7 +699,7 @@ function BirdHouse(params) {
 			});
 			btnCancel.addEventListener('click',function() {
 				// hide the keyboard on Android because it doesn't automatically
-				if (Ti.Platform.osname=='android') {
+				if (osname=='android') {
 					Titanium.UI.Android.hideSoftKeyboard();
 				}
 				winBG.close();
@@ -762,7 +767,7 @@ function BirdHouse(params) {
 
 			// the UI window looks completely different on iPhone vs. Android
 			// iPhone UI
-			if (Ti.Platform.osname=='iphone') {
+			if (osname=='iphone') {
 				var winTW = Titanium.UI.createWindow({
 					height:((Ti.Platform.displayCaps.platformHeight*0.5)-15), // half because the keyboard takes up half
 					width:(Ti.Platform.displayCaps.platformWidth-20),
@@ -919,7 +924,7 @@ function BirdHouse(params) {
 						return false;
 					} else {
 						// hide the keyboard on Android because it doesn't automatically
-						if (Ti.Platform.osname=='android') {
+						if (osname=='android') {
 							Titanium.UI.Android.hideSoftKeyboard();
 						}
 
@@ -937,7 +942,7 @@ function BirdHouse(params) {
 			});
 			btnCancel.addEventListener('click',function() {
 				// hide the keyboard on Android because it doesn't automatically
-				if (Ti.Platform.osname=='android') {
+				if (osname=='android') {
 					Titanium.UI.Android.hideSoftKeyboard();
 				}
 				winBG.close();

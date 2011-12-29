@@ -23,6 +23,10 @@
 // Modified: May 2011
 // --------------------------------------------------------
 
+// INCLUDES
+Ti.include('oauth.js');
+Ti.include('sha1.js');
+
 // THE CLASS
 function BirdHouse(params) {
 	// --------------------------------------------------------
@@ -43,6 +47,7 @@ function BirdHouse(params) {
 		request_verifier: "",
 		access_token: "",
 		access_token_secret: "",
+		shortener: {},
 		callback_url: ""
 	};
 	var accessor = {
@@ -56,18 +61,6 @@ function BirdHouse(params) {
 		osname = 'iphone';
 	}
     
-	// INCLUDES
-	// iphone requires complete path
-	if (osname=='iphone') {
-		Ti.include('lib/oauth.js');
-		Ti.include('lib/sha1.js');
-	}
-	// android will search the current directory for files
-	else {
-		Ti.include('oauth.js');
-		Ti.include('sha1.js');
-	}
-
 	// --------------------------------------------------------
 	// set_message
 	//
@@ -988,48 +981,118 @@ function BirdHouse(params) {
 	// --------------------------------------------------------
 	// shorten_url
 	//
-	// Shortens a URL using twe.ly.
+	// Shortens a URL.
 	//
 	// In Parameters:
 	//	url (String) - the url to shorten
+	//	callback (Function) - function to call on completion
 	//
 	// Returns:
-	//	shorturl (String) - the shortened URL, else false
-	//	callback (Function) - function to call on completion
+	//  nothing
 	// --------------------------------------------------------
 	function shorten_url(url,callback) {
+		if ( typeof callback === 'function' ) {
+			switch ( cfg.shortener.type ) {
+			case 'twely':
+				shorten_url_twely(url, callback);
+				break;
+			case 'bitly':
+				shorten_url_bitly(url, callback);
+				break;
+			default:
+				shorten_url_google(url, callback);
+				break;
+			}
+		}
+	}
 
-
+	function shorten_url_google(longurl, callback) {
 		var XHR = Titanium.Network.createHTTPClient();
-		XHR.open("GET","http://www.twe.ly/short.php?url="+url+"&json=1");
+		XHR.open("POST", "https://www.googleapis.com/urlshortener/v1/url");
+		XHR.setRequestHeader('Content-Type', 'application/json');
 		XHR.onload = function () {
+			var shorturl = false;
 			try {
-				shorturl = JSON.parse(XHR.responseText);
-			} catch(e) {
-				shorturl = false;
+				var response = JSON.parse(XHR.responseText);
+				if ( typeof response === 'object' && response.id ) {
+					shorturl = response.id;
+				}
 			}
-
-			if (shorturl!=false && shorturl.substr(0,5)=='Sorry') {
-				shorturl = false;
+			catch(e) {
+				Ti.API.info("Exception while shortening " + longurl);
 			}
-
-			if (typeof(callback)=='function') {
-				callback(shorturl,url);
-			}
-
-			return shorturl;
+			callback(shorturl, longurl);
 		};
-		XHR.onerror = function(e) {
+		XHR.onerror = function() {
+			Ti.API.info("Error while shortening " + longurl + " (" + XHR.status + ")");
+			callback(false);
+		};
+		XHR.send(JSON.stringify({longUrl: longurl}));
+	}
 
-			if (typeof(callback)=='function') {
-				callback(false);
+	function shorten_url_twely(longurl, callback) {
+		var XHR = Titanium.Network.createHTTPClient();
+		XHR.open("GET", "http://www.twe.ly/short.php?json=1&url=" + Ti.Network.encodeURIComponent(longurl));
+		XHR.onload = function () {
+			var shorturl = false;
+			try {
+				var response = JSON.parse(XHR.responseText);
+				if ( typeof response === 'string' && response.substr(0,5) !== 'Sorry' ) {
+					shorturl = reponse;
+				}
 			}
-
-			return false;
+			catch(e) {
+				Ti.API.info("Exception while shortening " + longurl);
+			}
+			callback(shorturl, longurl);
+		};
+		XHR.onerror = function() {
+			Ti.API.info("Error while shortening " + longurl + " (" + XHR.status + ")");
+			callback(false);
 		};
 		XHR.send();
 	}
-
+	
+	function shorten_url_bitly(longurl, callback) {
+		var XHR = Titanium.Network.createHTTPClient();
+		XHR.open("GET", "https://api-ssl.bitly.com/v3/shorten?login=" + cfg.shortener.username + "&apiKey=" + cfg.shortener.key + "&format=json&longUrl=" + Ti.Network.encodeURIComponent(longurl));
+		XHR.onload = function () {
+			var shorturl = false;
+			try {
+				var response = JSON.parse(XHR.responseText);
+				if ( typeof response === 'object' && response.status_code === 200 ) {
+					shorturl = response.data.url;
+				}
+			}
+			catch(e) {
+				Ti.API.info("Exception while shortening " + longurl);
+			}
+			callback(shorturl, longurl);
+		};
+		XHR.onerror = function() {
+			Ti.API.info("Error while shortening " + longurl + " (" + XHR.status + ")");
+			callback(false);
+		};
+		XHR.send();
+	}
+	
+	// --------------------------------------------------------
+	// set_shortener
+	//
+	// Configure the shortener to be used.
+	//
+	// In Parameters:
+	//	obj - object to configure the shortener
+	//	  type: string denoting the service used (e.g. 'google')
+	//    username: string with username (if needed)
+	//    key: string with ket (if needed)
+	//
+	// Returns: nothing
+	// --------------------------------------------------------
+	function set_shortener(_args) {
+		cfg.shortener = _args;
+	}
+	
 	// --------------------------------------------------------
 	// get_tweets
 	//
@@ -1131,7 +1194,7 @@ function BirdHouse(params) {
 
 		return !authorized;
 	}
-
+	
 	// --------------------------------------------------------
 	// ===================== PUBLIC ===========================
 	// --------------------------------------------------------
@@ -1143,6 +1206,7 @@ function BirdHouse(params) {
 	this.tweet = tweet;
 	this.short_tweet = short_tweet;
 	this.shorten_url = shorten_url;
+	this.set_shortener = set_shortener;
 
 	// --------------------------------------------------------
 	// =================== INITIALIZE =========================

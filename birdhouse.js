@@ -470,6 +470,7 @@ function BirdHouse(params) {
 			
 			// on success, grab the request token
 			XHR.onload = function() {
+				Ti.API.debug("api response " + XHR.responseText);
 
 				// execute the callback function
 				if (typeof(callback)=='function') {
@@ -481,15 +482,23 @@ function BirdHouse(params) {
 
 			// on error, show message
 			XHR.onerror = function(e) {
+				var message = null;
+				try {
+					message = JSON.parse(XHR.responseText).error;
+				}
+				catch (e) {
+				}
+				Ti.API.debug("api error " + XHR.status + (message ? ', ' + message : ''));
 				// execute the callback function
 				if (typeof(callback)=='function') {
-					callback(false);
+					callback(false, message);
 				}
 
 				return false;
 			}
 			
 			XHR.open(method, finalUrl, false);
+			Ti.API.debug("api " + method + " " + finalUrl);
 
 			// if we are getting request tokens do not set the HTML header
 			if (typeof(setHeader)=='undefined' || setHeader==true) {
@@ -501,10 +510,11 @@ function BirdHouse(params) {
 					} else {
 						header = header + ",";
 					}
-					header = header + message.parameters[i][0] + '="' + escape(message.parameters[i][1]) + '"';
+					header = header + message.parameters[i][0] + '="' + Ti.Network.encodeURIComponent(message.parameters[i][1]) + '"';
 				}
 
 				XHR.setRequestHeader("Authorization", header);
+				Ti.API.debug("api Authorization: " + header);
 			}
 			
 			XHR.send();
@@ -664,11 +674,11 @@ function BirdHouse(params) {
 				charcount.text = parseInt(chars)+'';
 			});
 			btnTW.addEventListener('click',function() {
-				send_tweet("status="+escape(tweet.value),function(retval){
+				send_tweet("status="+escape(tweet.value),function(retval, message){
 					if (retval===false) {
 						// execute the callback function
 						if (typeof(callback)=='function') {
-							callback(false);
+							callback(false, message);
 						}
 
 						return false;
@@ -907,11 +917,11 @@ function BirdHouse(params) {
 				}
 			});
 			btnTW.addEventListener('click',function() {
-				send_tweet("status="+escape(tweet.value),function(retval){
+				send_tweet("status="+escape(tweet.value),function(retval, message){
 					if (retval===false) {
 						// execute the callback function
 						if (typeof(callback)=='function') {
-							callback(false);
+							callback(false, message);
 						}
 
 						return false;
@@ -962,7 +972,7 @@ function BirdHouse(params) {
 	//	callback (Function) - function to call on completion
 	// --------------------------------------------------------
 	function send_tweet(params,callback) {
-		api('http://api.twitter.com/1/statuses/update.json','POST',params,function(resp){
+		api('http://api.twitter.com/1/statuses/update.json','POST',params,function(resp, message){
 			if (resp!=false) {
 				if (typeof(callback)=='function') {
 					callback(true);
@@ -970,7 +980,7 @@ function BirdHouse(params) {
 				return true;
 			} else {
 				if (typeof(callback)=='function') {
-					callback(false);
+					callback(false, message);
 				}
 				return false;
 			}

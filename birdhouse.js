@@ -705,6 +705,12 @@ function BirdHouse(params) {
 				if (osname=='android') {
 					Titanium.UI.Android.hideSoftKeyboard();
 				}
+				
+				// execute the callback function
+				if (typeof(callback)==='function') {
+					callback(false);
+				}
+				
 				winBG.close();
 				winTW.close();
 			});
@@ -948,6 +954,12 @@ function BirdHouse(params) {
 				if (osname=='android') {
 					Titanium.UI.Android.hideSoftKeyboard();
 				}
+				
+				// execute the callback function
+				if (typeof(callback)==='function') {
+					callback(false);
+				}
+				
 				winBG.close();
 				winTW.close();
 			});
